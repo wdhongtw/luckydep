@@ -1,0 +1,29 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "luckydep"
+version = "0.1.0"
+authors = [
+  { name="Weida Hong", email="wdhongtw@gmail.com" },
+]
+description = "Minimal dependency injection framework"
+keywords = [
+]
+readme = "README.md"
+requires-python = ">=3.7"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Typing :: Typed",
+    "Topic :: Utilities",
+]
+
+[project.urls]
+"Homepage" = "https://github.com/wdhongtw/luckydep"
+
+[tool.hatch.build]
+only-include = ["src"]
+sources = ["src"]
