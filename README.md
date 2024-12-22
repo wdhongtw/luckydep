@@ -1,8 +1,13 @@
 # luckydep: A minimal dependency injection framework
 
-`luckydep` is a minimal dependency framework, only one class with two method.
+`luckydep` is a minimal dependency framework.
 
 Full type-hint on public interface, provide type safety for library user.
+
+There are two way to use this library
+
+- `luckydep.Container`: friendly, common style in the domain of DI.
+- `luckydep.Value`: no runtime-type and more flexible, just a little hassle.
 
 ## Motivation
 
@@ -25,7 +30,7 @@ So comes this library. Inspired by golang library
 this library require user to do a little more stuff in main program,
 for limiting the dependency of DI framework into one place.
 
-## Usage
+## Usage by Container
 
 Assuming we have a `Service`, providing use-case `greeting`,
 which need user to inject a `Store` instance and a `prefix` config.
@@ -52,7 +57,7 @@ class Service:
         return f"{self._prefix}, {name}"
 ```
 
-With the help of `luckydep.Container`, we can register factory function
+With the help of `Container`, we can register factory function
 and later invoke the required instance.
 
 ```python
@@ -100,6 +105,39 @@ container.provide(Obj, lambda c: Obj())
 container.provide(Obj, lambda c: Obj(), name="default")
 ```
 
+## Usage by Value
+
+Another way to use this library is to keep interested objects in different
+`Value` separately. This usage does not evaluate any *type* in runtime.
+Also the generic `Value` class is enough to achieve type-safety.
+
+```python
+import luckydep
+
+value_service = luckydep.Value[Service](
+    lambda: Service(
+        value_store.invoke(),
+        "Hi",
+    )
+)
+value_store = luckydep.Value[Store](
+    lambda: FaKeStore(
+        {3: "Bob"},
+    )
+)
+
+service = value_service.invoke()
+sentence = service.greeting(3)
+
+assert sentence == "Hi, Bob"
+```
+
+Again, the order of `value_service` and `value_store` is not important here,
+since that the factory function is invoked lazily.
+
+Also, because all object is already stored in different `Value`,
+named-provide/invoke mechanism is not available in value-based usage, 
+
 ## Limitation
 
 No dependency cycle detection, this library just explode the stack and crash
@@ -129,13 +167,13 @@ every time, we can register "factory function of some factory function".
 Although the faction function need to be represent by some class,
 see next limitation.
 
-Can not provide a type which are not exists at runtime. For example,
+For container-based usage, we
+can not provide a type which are not exists at runtime. For example,
 `mypy` will complain when we want to provide a `Callable[[int, int], int]`
 function to the container. Although this still work well in runtime since these
 subscripted generic type instance is *comparable* and *hashable*.
 Likewise, interface defined by `typing.Protocol` won't pass `mypy` check either.
 
-As a result, structural typing is not possible by this library.
 User need to establish a explicit type inheritance.
 
 ```python
@@ -155,6 +193,8 @@ c.provide(BinOp, lambda c: Add(), name="add-func")
 operator = c.invoke(BinOp, name="add-func")
 assert operator(2, 3) == 5
 ```
+
+Prefer value-based style if that's a problem.
 
 ## Related Work
 

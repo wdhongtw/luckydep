@@ -5,7 +5,7 @@ as less feature as as possible for the purpose of dependency injection.
 
 from __future__ import annotations
 
-from typing import Any, Callable, TypeVar
+from typing import Any, Callable, Generic, TypeVar, cast
 
 _T = TypeVar("_T", bound=object)
 
@@ -66,3 +66,31 @@ def wrap(factory: Callable[[], _T]) -> Callable[[Container], _T]:
         return factory()
 
     return wrapped
+
+
+class Value(Generic[_T]):
+    """
+    Value of a minimal dependency injection framework.
+
+    *provide* is the construction of Value object, and *invoke* is
+    represented by the single public method.
+
+    In practice, the factory function is usually a lambda function,
+    so it can invoke other captured dependencies when needed.
+    """
+
+    _value: _T | None
+    _factory: Callable[[], _T]
+    _invoked: bool
+
+    def __init__(self, factory: Callable[[], _T]):
+        self._factory = factory
+        self._value = None
+        self._invoked = False
+
+    def value(self) -> _T:
+        if not self._invoked:
+            self._value = self._factory()
+            self._invoked = True
+
+        return cast(_T, self._value)

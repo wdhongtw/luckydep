@@ -1,9 +1,10 @@
 import unittest
+from collections.abc import Callable
 
 import luckydep
 
 
-class TestAll(unittest.TestCase):
+class TestContainer(unittest.TestCase):
     def test_composition(self) -> None:
 
         class Store:
@@ -97,3 +98,54 @@ class TestAll(unittest.TestCase):
 
         operator = c.invoke(BinOp, name="add-func")
         self.assertEqual(5, operator(2, 3))
+
+
+class TestValue(unittest.TestCase):
+
+    def test_construction(self) -> None:
+
+        class Store:
+            def get_name(self, user_id: int) -> str:
+                raise NotImplementedError()
+
+        class FaKeStore(Store):
+            def __init__(self, records: dict[int, str]):
+                self._records = records
+
+            def get_name(self, user_id: int) -> str:
+                return self._records[user_id]
+
+        class Service:
+            def __init__(self, store: Store, prefix: str):
+                self._store = store
+                self._prefix = prefix
+
+            def greeting(self, user_id: int) -> str:
+                name = self._store.get_name(user_id)
+                return f"{self._prefix}, {name}"
+
+        value_service = luckydep.Value[Service](
+            lambda: Service(
+                value_store.value(),
+                "Hi",
+            )
+        )
+        value_store = luckydep.Value[Store](
+            lambda: FaKeStore(
+                {3: "Bob"},
+            )
+        )
+
+        service = value_service.value()
+        sentence = service.greeting(3)
+
+        self.assertEqual("Hi, Bob", sentence)
+
+    def test_function_value(self) -> None:
+
+        add: Callable[[int, int], int] = lambda a, b: a + b
+
+        value_op = luckydep.Value[Callable[[int, int], int]](lambda: add)
+        op = value_op.value()
+
+        self.assertEqual(5, op(2, 3))
